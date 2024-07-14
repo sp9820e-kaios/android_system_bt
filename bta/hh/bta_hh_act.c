@@ -1044,6 +1044,9 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
         {
             bta_hh_le_remove_dev_bg_conn(p_cb);
             bta_hh_sm_execute(p_cb, BTA_HH_API_CLOSE_EVT, NULL);
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+            bta_hh_le_clean_up_notifications(p_cb, 0);
+#endif
             bta_hh_clean_up_kdev(p_cb);
         }
         else

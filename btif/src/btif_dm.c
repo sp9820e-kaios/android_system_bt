@@ -1611,6 +1611,106 @@ static void btif_dm_remote_service_record_evt(UINT16 event, char *p_param)
     }
 }
 
+#if defined (BOARD_HAVE_FM_BCM)
+/*******************************************************************************
+**
+** Function         btif_dm_enable_bt_services
+**
+** Description      Send the adpater properties and enables the bt service when bt is enable
+**
+** Returns          void
+**
+*******************************************************************************/
+void btif_dm_enable_bt_services()
+{
+    tBTA_SERVICE_MASK service_mask;
+    uint32_t i = 0;
+    bt_bdaddr_t bd_addr;
+    BD_NAME bdname;
+    bt_status_t status;
+    bt_property_t prop;
+    prop.type = BT_PROPERTY_BDNAME;
+    prop.len = sizeof(BD_NAME);
+    prop.val = (void*)bdname;
+
+    status = btif_storage_get_adapter_property(&prop);
+    /* Storage does not have a name yet.
+    ** Use the default name and write it to the chip
+    */
+    if (status != BT_STATUS_SUCCESS)
+    {
+        BTA_DmSetDeviceName(btif_get_default_local_name());
+        /* Hmmm...Should we store this too??? */
+    }
+    else
+    {
+        /* A name exists in the storage. Make this the device name */
+        BTA_DmSetDeviceName((char*)prop.val);
+    }
+#if (defined(BLE_INCLUDED) && (BLE_INCLUDED == TRUE))
+				 /* Enable local privacy */
+     BTA_DmBleConfigLocalPrivacy(BLE_LOCAL_PRIVACY_ENABLED);
+#endif
+
+    //Added for PBAPC: register static SDP records
+    //btif_sdp_add_records();
+
+    /* for each of the enabled services in the mask, trigger the profile
+     * enable */
+    service_mask = btif_get_enabled_services_mask();
+    for (i=0; i <= BTA_MAX_SERVICE_ID; i++)
+    {
+        if (service_mask &
+            (tBTA_SERVICE_MASK)(BTA_SERVICE_ID_TO_SERVICE_MASK(i)))
+        {
+            btif_in_execute_service_request(i, TRUE);
+        }
+    }
+    /* clear control blocks */
+    memset(&pairing_cb, 0, sizeof(btif_dm_pairing_cb_t));
+	pairing_cb.bond_type = BOND_TYPE_PERSISTENT;
+
+    /* This function will also trigger the adapter_properties_cb
+    ** and bonded_devices_info_cb
+    */
+    btif_storage_load_bonded_devices();
+
+    btif_storage_load_autopair_device_list();
+
+}
+
+/*******************************************************************************
+**
+** Function         btif_dm_disable_bt_services
+**
+** Description      Stop bt services when bt is disabled
+**
+** Returns          void
+**
+*******************************************************************************/
+void btif_dm_disable_bt_services()
+{
+    tBTA_SERVICE_MASK service_mask;
+    uint32_t i;
+
+    /* for each of the enabled services in the mask, trigger the profile
+     * disable */
+    service_mask = btif_get_enabled_services_mask();
+    for (i=0; i <= BTA_MAX_SERVICE_ID; i++)
+    {
+        if (service_mask &
+            (tBTA_SERVICE_MASK)(BTA_SERVICE_ID_TO_SERVICE_MASK(i)))
+        {
+            btif_in_execute_service_request(i, FALSE);
+        }
+    }
+
+    //Added for PBAPC: unregister static SDP records
+    //btif_sdp_remove_records();
+
+}
+#endif
+
 /*******************************************************************************
 **
 ** Function         btif_dm_upstreams_cback
@@ -1633,6 +1733,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
     {
         case BTA_DM_ENABLE_EVT:
         {
+#if (!defined (BOARD_HAVE_FM_BCM))
              BD_NAME bdname;
              bt_status_t status;
              bt_property_t prop;
@@ -1681,6 +1782,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
 
              btif_storage_load_autopair_device_list();
 
+#endif
              btif_enable_bluetooth_evt(p_data->enable.status);
         }
         break;
@@ -2436,7 +2538,7 @@ bt_status_t btif_dm_pin_reply( const bt_bdaddr_t *bd_addr, uint8_t accept,
                                uint8_t pin_len, bt_pin_code_t *pin_code)
 {
     BTIF_TRACE_EVENT("%s: accept=%d", __FUNCTION__, accept);
-    if (pin_code == NULL)
+    if (pin_code == NULL || pin_len > PIN_CODE_LEN)
         return BT_STATUS_FAIL;
 #if (defined(BLE_INCLUDED) && (BLE_INCLUDED == TRUE))
 

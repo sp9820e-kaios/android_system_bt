@@ -30,6 +30,12 @@
 
 #ifdef HAS_BDROID_BUILDCFG
 #include "bdroid_buildcfg.h"
+
+#undef BTM_WBS_INCLUDED
+#undef BTIF_HF_WBS_PREFERRED
+#define BTM_WBS_INCLUDED FALSE
+#define BTIF_HF_WBS_PREFERRED FALSE
+
 #endif
 
 #include "bt_types.h"   /* This must be defined AFTER buildcfg.h */
@@ -37,6 +43,79 @@
 /* Include common GKI definitions used by this platform */
 #include "gki_target.h"
 #include "dyn_mem.h"    /* defines static and/or dynamic memory for components */
+
+/* SPRD bluetooth stack configuration */
+#ifdef SPRD_WCNBT_SR2351
+#define HCILP_INCLUDED FALSE
+#define BTM_WBS_INCLUDED FALSE
+#define BLE_INCLUDED FALSE
+#define BTA_GATT_INCLUDED FALSE
+#define SPRD_FEATURE_QOS TRUE
+#define SPRD_FEATURE_SLOG TRUE
+#define SPRD_FEATURE_STARUP TRUE
+#define SPRD_FEATURE_NONSIG TRUE
+#define BTM_DEFAULT_SCAN_TYPE       BTM_SCAN_TYPE_STANDARD
+#define SPRD_FEATURE_AOBFIX TRUE
+#define PORT_RX_BUF_HIGH_WM 34
+#elif defined(RDA_BT)
+#define HCILP_INCLUDED TRUE
+#if defined(KAIOS_8K_SAMPLERATE_SUPPORT)
+#define BTM_WBS_INCLUDED FALSE
+#define BTIF_HF_WBS_PREFERRED FALSE
+#endif
+#define BLE_INCLUDED FALSE
+#define BLE_LOCAL_PRIVACY_ENABLED         FALSE 
+#define BLE_ANDROID_CONTROLLER_SCAN_FILTER            FALSE 
+#define BLE_BATCH_SCAN_INCLUDED  FALSE 
+#define BTA_GATT_INCLUDED FALSE
+#define SPRD_FEATURE_QOS TRUE
+#define SPRD_FEATURE_SLOG TRUE
+#define SPRD_FEATURE_STARUP TRUE
+#define SPRD_FEATURE_NONSIG TRUE
+#define BTM_DEFAULT_SCAN_TYPE       BTM_SCAN_TYPE_STANDARD
+#define SPRD_FEATURE_AOBFIX TRUE
+#define PORT_RX_BUF_HIGH_WM 34
+#define SC_MODE_INCLUDED                FALSE
+#elif SPRD_WCNBT_MARLIN
+#define HCILP_INCLUDED TRUE
+#if defined(KAIOS_8K_SAMPLERATE_SUPPORT)
+#define BTM_WBS_INCLUDED FALSE
+#define BTIF_HF_WBS_PREFERRED FALSE
+#else
+#define BTM_WBS_INCLUDED TRUE
+#define BTIF_HF_WBS_PREFERRED TRUE
+#endif
+#define BLE_INCLUDED TRUE
+#define BTA_GATT_INCLUDED TRUE
+#define SPRD_FEATURE_QOS TRUE
+#define SPRD_FEATURE_SLOG TRUE
+#define SPRD_FEATURE_NONSIG TRUE
+#define BTM_DEFAULT_SCAN_TYPE       BTM_SCAN_TYPE_STANDARD
+#define SPRD_FEATURE_AOBFIX TRUE
+#define SPRD_FEATURE_UARTCL TRUE
+#define PORT_RX_BUF_HIGH_WM 34
+#ifdef SPRD_WCNBT_MARLIN_15A
+#define SPRD_FEATURE_STARUP TRUE
+#else
+#define SPRD_FEATURE_STARUP FALSE
+#endif
+#endif
+
+#ifndef SPRD_FEATURE_QOS
+#define SPRD_FEATURE_QOS FALSE
+#endif
+
+#ifndef SPRD_FEATURE_SLOG
+#define SPRD_FEATURE_SLOG FALSE
+#endif
+
+#ifndef SPRD_FEATURE_STARUP
+#define SPRD_FEATURE_STARUP FALSE
+#endif
+
+#ifndef SPRD_FEATURE_NONSIG
+#define SPRD_FEATURE_NONSIG FALSE
+#endif
 
 //------------------Added from bdroid_buildcfg.h---------------------
 #ifndef L2CAP_EXTFEA_SUPPORTED_MASK
@@ -130,10 +209,6 @@
 
 #ifndef BTA_AV_RET_TOUT
 #define BTA_AV_RET_TOUT 15
-#endif
-
-#ifndef PORCHE_PAIRING_CONFLICT
-#define PORCHE_PAIRING_CONFLICT  TRUE
 #endif
 
 #ifndef BTA_AV_CO_CP_SCMS_T

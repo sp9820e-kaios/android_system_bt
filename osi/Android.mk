@@ -25,7 +25,10 @@ LOCAL_CLANG := false
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/include \
-    $(LOCAL_PATH)/..
+    $(LOCAL_PATH)/.. \
+    $(LOCAL_PATH)/../include \
+    $(LOCAL_PATH)/../stack/include \
+    $(bdroid_C_INCLUDES)
 
 LOCAL_SRC_FILES := \
     ./src/alarm.c \
@@ -48,7 +51,7 @@ LOCAL_SRC_FILES := \
     ./src/socket.c \
     ./src/thread.c
 
-LOCAL_CFLAGS := -std=c99 -Wall -Werror -UNDEBUG
+LOCAL_CFLAGS := -std=c99 -Wall -Werror -UNDEBUG $(bdroid_CFLAGS)
 # Many .h files have redefined typedefs
 LOCAL_CLANG_CFLAGS += -Wno-error=typedef-redefinition
 LOCAL_MODULE := libosi

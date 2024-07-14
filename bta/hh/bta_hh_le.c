@@ -3161,6 +3161,41 @@ static void bta_hh_process_cache_rpt (tBTA_HH_DEV_CB *p_cb,
     }
 }
 
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+void bta_hh_le_clean_up_notifications(tBTA_HH_DEV_CB *p_dev_cb, UINT8 srvc_inst)
+{
+    tBTA_HH_LE_RPT  *p_rpt = &p_dev_cb->hid_srvc[srvc_inst].report[0];
+    tBTA_GATTC_CHAR_ID  char_id;
+    UINT8   i;
+    UINT16  srvc_uuid;
+
+#if BTA_HH_DEBUG == TRUE
+    APPL_TRACE_DEBUG("bta_hh_le_clean_up_notifications mode: %d", p_dev_cb->mode);
+#endif
+
+    for (i = 0; i < BTA_HH_LE_RPT_MAX; i++, p_rpt++)
+    {
+        if (p_rpt->rpt_type == BTA_HH_RPTT_INPUT)
+        {
+            if (p_rpt->uuid == GATT_UUID_BATTERY_LEVEL)
+                srvc_uuid = UUID_SERVCLASS_BATTERY;
+            else
+                srvc_uuid = UUID_SERVCLASS_LE_HID;
+
+#if BTA_HH_DEBUG == TRUE
+            APPL_TRACE_DEBUG("bta_hh_le_clean_up_notifications release notifications");
+#endif
+            bta_hh_le_fill_16bits_srvc_id(TRUE, BTA_HH_LE_RPT_GET_SRVC_INST_ID(p_rpt->inst_id),
+                    srvc_uuid, &char_id.srvc_id);
+            bta_hh_le_fill_16bits_char_id(BTA_HH_LE_RPT_GET_RPT_INST_ID(p_rpt->inst_id),
+                    p_rpt->uuid, &char_id.char_id);
+            BTA_GATTC_DeregisterForNotifications(bta_hh_cb.gatt_if,
+                    p_dev_cb->addr, &char_id);
+        }
+    }
+}
+#endif
+
 #endif
 
 

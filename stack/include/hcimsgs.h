@@ -633,7 +633,9 @@ extern BOOLEAN btsnd_hcic_write_inquiry_mode(UINT8 type);              /* Write 
 extern void btsnd_hcic_vendor_spec_cmd (void *buffer, UINT16 opcode,
                                         UINT8 len, UINT8 *p_data,
                                         void *p_cmd_cplt_cback);
-
+#ifdef RDA_BT
+extern void btsnd_hcic_wake_up_chip (void);
+#endif
 #if (BLE_INCLUDED == TRUE)
 /********************************************************************************
 ** BLE Commands

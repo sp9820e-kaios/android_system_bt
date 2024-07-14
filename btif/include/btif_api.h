@@ -59,6 +59,20 @@ bt_status_t btif_init_bluetooth(void);
 *******************************************************************************/
 bt_status_t btif_enable_bluetooth(void);
 
+#if defined (BOARD_HAVE_FM_BCM)
+/*******************************************************************************
+**
+** Function         btif_disable_bluetooth
+**
+** Description      Inititates shutdown of Bluetooth system.
+**                  Any active links will be dropped and device entering
+**                  non connectable/discoverable mode
+**
+** Returns          void
+**
+*******************************************************************************/
+bt_status_t btif_disable_bluetooth(int* ref_count);
+#else
 /*******************************************************************************
 **
 ** Function         btif_disable_bluetooth
@@ -71,6 +85,33 @@ bt_status_t btif_enable_bluetooth(void);
 **
 *******************************************************************************/
 bt_status_t btif_disable_bluetooth(void);
+#endif
+
+#if defined (BOARD_HAVE_FM_BCM)
+/*******************************************************************************
+**
+** Function         btif_enable_radio
+**
+** Description    Performs chip power on and kickstarts OS scheduler
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+
+bt_status_t btif_enable_radio(void);
+
+/*******************************************************************************
+**
+** Function         btif_disable_radio
+**
+** Description      Inititates shutdown of combo chip if no other radio/bt is turned on.
+**
+** Returns          void
+**
+*******************************************************************************/
+
+bt_status_t btif_disable_radio(int * ref_count);
+#endif
 
 /*******************************************************************************
 **
@@ -84,6 +125,23 @@ bt_status_t btif_disable_bluetooth(void);
 **
 *******************************************************************************/
 bt_status_t btif_shutdown_bluetooth(void);
+
+/*******************************************************************************
+**
+** Function         is_restricted_mode
+**
+** Description      Checks if BT was enabled in restriced mode. In restricted
+**                  mode, bonds that are created are marked as temporary.
+**                  These bonds persist until we leave restricted mode, at
+**                  which point they will be deleted from the config. Also
+**                  while in restricted mode, the user can access devices
+**                  that are already paired before entering restricted mode,
+**                  but they cannot remove any of these devices.
+**
+** Returns          bool
+**
+*******************************************************************************/
+bool is_restricted_mode(void);
 
 /*******************************************************************************
 **
@@ -379,4 +437,16 @@ void btif_dm_read_energy_info();
 **
 *******************************************************************************/
 bt_status_t btif_config_hci_snoop_log(uint8_t enable);
+
+#if (defined(SPRD_FEATURE_NONSIG) && SPRD_FEATURE_NONSIG == TRUE)
+bt_status_t btif_set_nonsig_tx_testmode(uint16_t enable,
+    uint16_t le, uint16_t pattern, uint16_t channel,
+    uint16_t pac_type, uint16_t pac_len, uint16_t power_type,
+    uint16_t power_value, uint16_t pac_cnt);
+bt_status_t btif_set_nonsig_rx_testmode(uint16_t enable,
+    uint16_t le, uint16_t pattern, uint16_t channel,
+    uint16_t pac_type,uint16_t rx_gain, bt_bdaddr_t addr);
+bt_status_t btif_get_nonsig_rx_data(uint16_t le);
+#endif
+
 #endif /* BTIF_API_H */

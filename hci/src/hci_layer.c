@@ -118,6 +118,10 @@ static const packet_fragmenter_t *packet_fragmenter;
 static const packet_fragmenter_callbacks_t packet_fragmenter_callbacks;
 static const vendor_t *vendor;
 
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+static const btsnoop_t *btsnoop_sprd = NULL;
+#endif
+
 static future_t *startup_future;
 static thread_t *thread; // We own this
 
@@ -246,6 +250,11 @@ static future_t *start_up(void) {
     // TODO(sharvil): gracefully propagate failures from this layer.
   }
 
+#if defined (SPRD_WCNBT_SR2351) || defined (SPRD_WCNBT_MARLIN)
+//prevent crash in startup timeout
+  startup_future = future_new();
+#endif
+
   int power_state = BT_VND_PWR_OFF;
 #if (defined (BT_CLEAN_TURN_ON_DISABLED) && BT_CLEAN_TURN_ON_DISABLED == TRUE)
   LOG_WARN("%s not turning off the chip before turning on.", __func__);
@@ -262,7 +271,10 @@ static future_t *start_up(void) {
   power_state = BT_VND_PWR_ON;
   vendor->send_command(VENDOR_CHIP_POWER_CONTROL, &power_state);
 
+#if defined (SPRD_WCNBT_SR2351) || defined (SPRD_WCNBT_MARLIN)
+#else
   startup_future = future_new();
+#endif
   LOG_DEBUG("%s starting async portion", __func__);
   thread_post(thread, event_finish_startup, NULL);
   return startup_future;
@@ -458,14 +470,22 @@ static void event_command_ready(fixed_queue_t *queue, UNUSED_ATTR void *context)
 
     // Move it to the list of commands awaiting response
     pthread_mutex_lock(&commands_pending_response_lock);
-    list_append(commands_pending_response, wait_entry);
+#ifdef RDA_BT
+    if(wait_entry->opcode!=0xfcc0)
+#endif	
+    	  list_append(commands_pending_response, wait_entry);
     pthread_mutex_unlock(&commands_pending_response_lock);
 
     // Send it off
-    low_power_manager->wake_assert();
+    #ifndef RDA_BT
+       low_power_manager->wake_assert();
+    #endif
     packet_fragmenter->fragment_and_dispatch(wait_entry->command);
-    low_power_manager->transmit_done();
-
+	
+    #ifndef RDA_BT
+   	low_power_manager->transmit_done();
+    #endif
+	
     non_repeating_timer_restart_if(command_response_timer, !list_is_empty(commands_pending_response));
   }
 }
@@ -474,15 +494,23 @@ static void event_packet_ready(fixed_queue_t *queue, UNUSED_ATTR void *context) 
   // The queue may be the command queue or the packet queue, we don't care
   BT_HDR *packet = (BT_HDR *)fixed_queue_dequeue(queue);
 
+#ifndef RDA_BT
   low_power_manager->wake_assert();
+#endif
   packet_fragmenter->fragment_and_dispatch(packet);
+#ifndef RDA_BT
   low_power_manager->transmit_done();
+#endif
 }
 
 // Callback for the fragmenter to send a fragment
 static void transmit_fragment(BT_HDR *packet, bool send_transmit_finished) {
   uint16_t event = packet->event & MSG_EVT_MASK;
   serial_data_type_t type = event_to_data_type(event);
+
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+  btsnoop_sprd->capture(packet, false);
+#endif
 
   btsnoop->capture(packet, false);
   hal->transmit_data(type, packet->data + packet->offset, packet->len);
@@ -517,6 +545,10 @@ static void command_timed_out(UNUSED_ATTR void *context) {
   }
 
   LOG_ERROR("%s restarting the bluetooth process.", __func__);
+#if (defined(SPRD_FEATURE_UARTCL) && SPRD_FEATURE_UARTCL == TRUE)
+  LOG_ERROR("%s hal close", __func__);
+  hal->close();
+#endif
   usleep(10000);
   kill(getpid(), SIGKILL);
 }
@@ -548,6 +580,13 @@ static void hal_says_data_ready(serial_data_type_t type) {
           incoming->bytes_remaining = (type == DATA_TYPE_ACL) ? RETRIEVE_ACL_LENGTH(incoming->preamble) : byte;
 
           size_t buffer_size = BT_HDR_SIZE + incoming->index + incoming->bytes_remaining;
+        #ifdef RDA_BT
+          if (buffer_size > 1021 + 100) // 3DH5+MAXheader
+          {
+            incoming->buffer = NULL;
+          }
+          else
+		  #endif
           incoming->buffer = (BT_HDR *)buffer_allocator->alloc(buffer_size);
 
           if (!incoming->buffer) {
@@ -597,6 +636,10 @@ static void hal_says_data_ready(serial_data_type_t type) {
 
     if (incoming->state == FINISHED) {
       incoming->buffer->len = incoming->index;
+
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+      btsnoop_sprd->capture(incoming->buffer, true);
+#endif
       btsnoop->capture(incoming->buffer, true);
 
       if (type != DATA_TYPE_EVENT) {
@@ -668,6 +711,23 @@ static bool filter_incoming_event(BT_HDR *packet) {
 
     goto intercepted;
   }
+#ifdef SPRD_WCNBT_MARLIN_15A
+#define HCI_COMMAND_PSKEY_EVT 0x6F
+#define HCI_PSKEY 0x1C01
+  else if (event_code == HCI_COMMAND_PSKEY_EVT) {
+    uint8_t status;
+    STREAM_TO_UINT8(status, stream);
+    STREAM_TO_UINT8(command_credits, stream);
+    opcode = HCI_PSKEY;
+    wait_entry = get_waiting_command(opcode);
+    if (!wait_entry)
+      LOG_WARN("%s command status event with no matching command. opcode: 0x%x", __func__, opcode);
+    else if (wait_entry->complete_callback)
+      wait_entry->complete_callback(packet, wait_entry->context);
+
+    goto intercepted;
+  }
+#endif
 
   return false;
 intercepted:;
@@ -780,6 +840,10 @@ const hci_t *hci_layer_get_interface() {
   packet_fragmenter = packet_fragmenter_get_interface();
   vendor = vendor_get_interface();
   low_power_manager = low_power_manager_get_interface();
+
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+  btsnoop_sprd = btsnoop_sprd_get_interface();
+#endif
 
   init_layer_interface();
   return &interface;

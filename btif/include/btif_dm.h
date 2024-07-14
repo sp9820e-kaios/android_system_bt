@@ -46,6 +46,12 @@ void btif_dm_proc_io_req(BD_ADDR bd_addr, tBTA_IO_CAP *p_io_cap, tBTA_OOB_DATA *
 void btif_dm_proc_io_rsp(BD_ADDR bd_addr, tBTA_IO_CAP io_cap,
                       tBTA_OOB_DATA oob_data, tBTA_AUTH_REQ auth_req);
 
+#if defined (BOARD_HAVE_FM_BCM)
+void btif_dm_enable_bt_services();
+
+void btif_dm_disable_bt_services();
+#endif
+
 /**
  * Out-of-band functions
  */

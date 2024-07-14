@@ -84,9 +84,11 @@ static bool secure_connections_supported;
 static future_t *start_up(void) {
   BT_HDR *response;
 
+#if (!defined(SPRD_FEATURE_STARUP) || SPRD_FEATURE_STARUP == FALSE)
   // Send the initial reset command
   response = AWAIT_COMMAND(packet_factory->make_reset());
   packet_parser->parse_generic_command_complete(response);
+#endif
 
   // Request the classic buffer size next
   response = AWAIT_COMMAND(packet_factory->make_read_buffer_size());

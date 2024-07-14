@@ -150,5 +150,4 @@ BOOLEAN btif_av_is_peer_edr(void);
 ** Returns          Void
 ********************************************************************************/
 void btif_av_clear_remote_suspend_flag(void);
-
 #endif /* BTIF_AV_H */

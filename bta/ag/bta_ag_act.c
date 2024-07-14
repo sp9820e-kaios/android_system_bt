@@ -663,9 +663,13 @@ void bta_ag_rfc_data(tBTA_AG_SCB *p_scb, tBTA_AG_DATA *p_data)
         }
 
         /* run AT command interpreter on data */
+#if (!defined(SPRD_FEATURE_AOBFIX) || SPRD_FEATURE_AOBFIX == FALSE)
         bta_sys_busy(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
+#endif
         bta_ag_at_parse(&p_scb->at_cb, buf, len);
+#if (!defined(SPRD_FEATURE_AOBFIX) || SPRD_FEATURE_AOBFIX == FALSE)
         bta_sys_idle(BTA_ID_AG, p_scb->app_id, p_scb->peer_addr);
+#endif
         /* no more data to read, we're done */
         if (len < BTA_AG_RFC_READ_MAX)
         {
@@ -895,6 +899,7 @@ void bta_ag_setcodec(tBTA_AG_SCB *p_scb, tBTA_AG_DATA *p_data)
 #if (BTM_WBS_INCLUDED == TRUE )
     tBTA_AG_PEER_CODEC codec_type = p_data->api_setcodec.codec;
     tBTA_AG_VAL        val;
+    val.hdr.handle = bta_ag_scb_to_idx(p_scb);
 
     /* Check if the requested codec type is valid */
     if((codec_type != BTA_AG_CODEC_NONE) &&

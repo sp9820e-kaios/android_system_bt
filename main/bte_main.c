@@ -128,13 +128,13 @@ void bte_main_boot_entry(void)
 ******************************************************************************/
 void bte_main_shutdown()
 {
+    module_clean_up(get_module(STACK_CONFIG_MODULE));
+
     data_dispatcher_register_default(hci_layer_get_interface()->event_dispatcher, NULL);
     hci->set_data_queue(NULL);
     fixed_queue_free(btu_hci_msg_queue, NULL);
 
     btu_hci_msg_queue = NULL;
-
-    module_clean_up(get_module(STACK_CONFIG_MODULE));
 
     module_clean_up(get_module(COUNTER_MODULE));
     module_clean_up(get_module(GKI_MODULE));
@@ -153,6 +153,10 @@ void bte_main_shutdown()
 void bte_main_enable()
 {
     APPL_TRACE_DEBUG("%s", __FUNCTION__);
+
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+    module_start_up(get_module(BTSNOOP_SPRD_MODULE));
+#endif
 
     module_start_up(get_module(BTSNOOP_MODULE));
     module_start_up(get_module(HCI_MODULE));
@@ -174,10 +178,14 @@ void bte_main_disable(void)
 {
     APPL_TRACE_DEBUG("%s", __FUNCTION__);
 
+    BTU_ShutDown();
+
     module_shut_down(get_module(HCI_MODULE));
     module_shut_down(get_module(BTSNOOP_MODULE));
 
-    BTU_ShutDown();
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+    module_shut_down(get_module(BTSNOOP_SPRD_MODULE));
+#endif
 }
 
 /******************************************************************************

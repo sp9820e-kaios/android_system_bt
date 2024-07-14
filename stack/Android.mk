@@ -38,9 +38,9 @@ LOCAL_C_INCLUDES:= . \
 
 LOCAL_CFLAGS += $(bdroid_CFLAGS) -std=c99
 
-ifeq ($(BOARD_HAVE_BLUETOOTH_BCM),true)
+ifeq ($(BOARD_HAVE_FM_BCM),true)
 LOCAL_CFLAGS += \
-	-DBOARD_HAVE_BLUETOOTH_BCM
+	-DBOARD_HAVE_FM_BCM
 endif
 
 LOCAL_SRC_FILES:= \
@@ -160,7 +160,7 @@ LOCAL_SRC_FILES:= \
     ./gap/gap_conn.c \
     ./gap/gap_utils.c
 
-LOCAL_MODULE := libbt-brcm_stack
+LOCAL_MODULE := libbt-sprd_stack
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 LOCAL_STATIC_LIBRARIES := libbt-hci

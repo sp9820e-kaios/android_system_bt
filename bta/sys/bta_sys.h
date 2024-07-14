@@ -94,6 +94,12 @@ typedef UINT16 tBTA_SYS_HW_MODULE;
 #define BTA_ID_SDP          33           /* SDP Client */
 #define BTA_ID_BLUETOOTH_MAX   34        /* last BT profile */
 
+#if defined (BOARD_HAVE_FM_BCM)
+/* FM */
+#define BTA_ID_FM           35           /* FM  */
+#define BTA_ID_FMTX         36           /* FM TX */
+#endif
+
 /* GENERIC */
 #define BTA_ID_PRM          38
 #define BTA_ID_SYSTEM       39           /* platform-specific */

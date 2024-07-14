@@ -539,9 +539,17 @@ void bta_dm_set_dev_name (tBTA_DM_MSG *p_data)
 void bta_dm_set_visibility(tBTA_DM_MSG *p_data)
 {
     UINT16 window, interval;
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
     UINT16 le_disc_mode = BTM_BleReadDiscoverability();
+#else
+    UINT16 le_disc_mode = 0;
+#endif
     UINT16 disc_mode = BTM_ReadDiscoverability(&window, &interval);
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
     UINT16 le_conn_mode = BTM_BleReadConnectability();
+#else
+    UINT16 le_conn_mode = 0;
+#endif
     UINT16 conn_mode = BTM_ReadConnectability(&window, &interval);
 
     /* set modes for Discoverability and connectability if not ignore */
@@ -666,6 +674,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
             if (!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, p_dev->bd_addr))
             {
                 bta_dm_cb.device_list.peer_device[i].conn_state = BTA_DM_UNPAIRING;
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
                 btm_remove_acl( p_dev->bd_addr, bta_dm_cb.device_list.peer_device[i].transport);
                 APPL_TRACE_DEBUG("%s:transport = %d", __func__,
                                   bta_dm_cb.device_list.peer_device[i].transport);
@@ -676,6 +685,10 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
                 else
                    other_transport = BT_TRANSPORT_LE;
                 break;
+#else
+                other_transport = BT_TRANSPORT_BR_EDR;
+                btm_remove_acl( p_dev->bd_addr, BT_TRANSPORT_BR_EDR);
+#endif
             }
         }
     }
@@ -687,9 +700,13 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
     // If it is DUMO device and device is paired as different address, unpair that device
     // if different address
     BOOLEAN continue_delete_other_dev = FALSE;
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
     if ((other_transport && (BTM_ReadConnectedTransportAddress(other_address, other_transport))) ||
       (!other_transport && (BTM_ReadConnectedTransportAddress(other_address, BT_TRANSPORT_BR_EDR) ||
        BTM_ReadConnectedTransportAddress(other_address, BT_TRANSPORT_LE))))
+#else
+    if (TRUE)
+#endif
     {
         continue_delete_other_dev = FALSE;
         /* Take the link down first, and mark the device for removal when disconnected */
@@ -698,7 +715,11 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
             if (!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, other_address))
             {
                 bta_dm_cb.device_list.peer_device[i].conn_state = BTA_DM_UNPAIRING;
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
                 btm_remove_acl(other_address,bta_dm_cb.device_list.peer_device[i].transport);
+#else
+                btm_remove_acl(other_address, other_transport);
+#endif
                 break;
             }
         }
@@ -2313,15 +2334,17 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
         APPL_TRACE_DEBUG("%s appl_knows_rem_name %d", __func__,
                             bta_dm_search_cb.p_btm_inq_info->appl_knows_rem_name);
     }
-
+#ifndef RDA_BT  //rda disable for continue discovery,  to request remote name
     if((bta_dm_search_cb.p_btm_inq_info)
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
        && (bta_dm_search_cb.p_btm_inq_info->results.device_type == BT_DEVICE_TYPE_BLE)
+#endif
        && (bta_dm_search_cb.state == BTA_DM_SEARCH_ACTIVE))
     {
         /* Do not perform RNR for LE devices at inquiry complete*/
         bta_dm_search_cb.name_discover_done = TRUE;
     }
-
+#endif
     /* if name discovery is not done and application needs remote name */
     if ((!bta_dm_search_cb.name_discover_done)
        && (( bta_dm_search_cb.p_btm_inq_info == NULL )
@@ -2943,6 +2966,10 @@ static UINT8 bta_dm_sp_cback (tBTM_SP_EVT event, tBTM_SP_EVT_DATA *p_data)
     /*case BTM_SP_KEY_REQ_EVT: */
     case BTM_SP_KEY_NOTIF_EVT:
 #endif
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+        bta_dm_cb.num_val = sec_event.key_notif.passkey = p_data->key_notif.passkey;
+#endif
+
         if(BTM_SP_CFM_REQ_EVT == event)
         {
           /* Due to the switch case falling through below to BTM_SP_KEY_NOTIF_EVT,
@@ -2968,8 +2995,9 @@ static UINT8 bta_dm_sp_cback (tBTM_SP_EVT event, tBTM_SP_EVT_DATA *p_data)
               sec_event.key_notif.bd_name[BD_NAME_LEN-1] = 0;
            }
         }
-
+#if (!defined(SPRD_FEATURE_AOBFIX) || SPRD_FEATURE_AOBFIX == FALSE)
         bta_dm_cb.num_val = sec_event.key_notif.passkey = p_data->key_notif.passkey;
+#endif
         if (BTM_SP_KEY_NOTIF_EVT == event)
         {
             /* If the device name is not known, save bdaddr and devclass

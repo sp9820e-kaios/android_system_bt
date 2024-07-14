@@ -172,7 +172,11 @@ static tBTTRC_FUNC_MAP bttrc_set_level_map[] = {
 static const UINT16 bttrc_map_size = sizeof(bttrc_set_level_map)/sizeof(tBTTRC_FUNC_MAP);
 
 void LogMsg(uint32_t trace_set_mask, const char *fmt_str, ...) {
-  static char buffer[BTE_LOG_BUF_SIZE];
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+    char buffer[BTE_LOG_BUF_SIZE];
+#else
+    static char buffer[BTE_LOG_BUF_SIZE];
+#endif
   int trace_layer = TRACE_GET_LAYER(trace_set_mask);
   if (trace_layer >= TRACE_LAYER_MAX_NUM)
     trace_layer = 0;
@@ -202,6 +206,35 @@ void LogMsg(uint32_t trace_set_mask, const char *fmt_str, ...) {
   }
 }
 
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+#include "btsnoop_sprd.h"
+
+static void load_levels_from_config(const config_t* config) {
+
+  for (tBTTRC_FUNC_MAP* functions = &bttrc_set_level_map[0];
+       functions->trc_name; ++functions) {
+    int value =
+        config_get_int(config, CONFIG_DEFAULT_SECTION, functions->trc_name, -1);
+    if (value != -1) functions->trace_level = value;
+
+    if (functions->p_f) functions->p_f(functions->trace_level);
+  }
+}
+
+
+void bte_trace_level_switch(int debug) {
+  const stack_config_t *stack_config = stack_config_get_interface();
+  if (debug) {
+      LOG_INFO("bte_trace_level_switch debug");
+      load_levels_from_config(stack_config->get_debug_config());
+  } else {
+      LOG_INFO("bte_trace_level_switch default");
+      load_levels_from_config(stack_config->get_all());
+  }
+}
+#endif
+
+
 /* this function should go into BTAPP_DM for example */
 static uint8_t BTAPP_SetTraceLevel(uint8_t new_level) {
   if (new_level != 0xFF)
@@ -222,20 +255,6 @@ static uint8_t BTU_SetTraceLevel(uint8_t new_level) {
     btu_cb.trace_level = new_level;
 
   return btu_cb.trace_level;
-}
-
-static void load_levels_from_config(const config_t *config) {
-  assert(config != NULL);
-
-  for (tBTTRC_FUNC_MAP *functions = &bttrc_set_level_map[0]; functions->trc_name; ++functions) {
-    LOG_INFO("BTE_InitTraceLevels -- %s", functions->trc_name);
-    int value = config_get_int(config, CONFIG_DEFAULT_SECTION, functions->trc_name, -1);
-    if (value != -1)
-      functions->trace_level = value;
-
-    if (functions->p_f)
-      functions->p_f(functions->trace_level);
-  }
 }
 
 static future_t *init(void) {

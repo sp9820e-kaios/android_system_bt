@@ -31,6 +31,8 @@
 #include "osi/include/list.h"
 #include "osi/include/log.h"
 
+#include "bt_target.h"
+
 typedef struct {
   char *key;
   char *value;
@@ -94,6 +96,30 @@ config_t *config_new(const char *filename) {
   config_parse(fp, config);
   fclose(fp);
   return config;
+}
+
+config_t *config_new_clone(const config_t *src) {
+  assert(src != NULL);
+
+  config_t *ret = config_new_empty();
+
+  assert(ret != NULL);
+
+  for (const list_node_t *node = list_begin(src->sections);
+       node != list_end(src->sections);
+       node = list_next(node)) {
+    section_t *sec = list_node(node);
+
+    for (const list_node_t *node_entry = list_begin(sec->entries);
+         node_entry != list_end(sec->entries);
+         node_entry = list_next(node_entry)) {
+      entry_t *entry = list_node(node_entry);
+
+      config_set_string(ret, sec->name, entry->key, entry->value);
+    }
+  }
+
+  return ret;
 }
 
 void config_free(config_t *config) {
@@ -281,6 +307,22 @@ bool config_save(const config_t *config, const char *filename) {
   }
 
   fflush(fp);
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+  {
+    int fd = fileno(fp);
+    if (fd > 0)
+    {
+      if (fsync(fd) < 0)
+      {
+        LOG_ERROR("%s unable fsync '%s': %s", __func__, filename, strerror(errno));
+      }
+    }
+    else
+    {
+      LOG_ERROR("%s open fd failed '%s': %s", __func__, filename, strerror(errno));
+    }
+  }
+#endif
   fclose(fp);
 
   // Change the file's permissions to Read/Write by User and Group

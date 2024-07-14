@@ -121,7 +121,11 @@ static void wake_assert() {
 
 static void transmit_done() {
   transmit_is_done = true;
-  if (wake_state == LPM_WAKE_W4_TX_DONE) {
+  if (wake_state == LPM_WAKE_W4_TX_DONE
+	#ifdef RDA_BT
+	||wake_state == LPM_WAKE_ASSERTED
+	#endif
+    ) {
     wake_state = LPM_WAKE_W4_TIMEOUT;
     start_idle_timer();
   }

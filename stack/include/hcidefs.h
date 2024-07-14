@@ -294,6 +294,12 @@
 #define HCI_VSC_MULTI_AV_HANDLE         0x0AAA
 #define HCI_VSC_BURST_MODE_HANDLE       0x0BBB
 
+#if defined (BOARD_HAVE_FM_BCM)
+/* Vendor specific commands for FM */
+#define HCI_BRCM_FM_OPCODE                  (0x0015 | HCI_GRP_VENDOR_SPECIFIC)
+#define HCI_BRCM_VSE_SUBCODE_FM_INTERRUPT                           0x08
+#endif
+
 /* BLE HCI */
 #define HCI_GRP_BLE_CMDS                (0x08 << 10)
 /* Commands of BLE Controller setup and configuration */
@@ -1352,6 +1358,9 @@ typedef struct
 #define HCI_BRCM_ACL_PRIORITY_LOW           0x00
 #define HCI_BRCM_ACL_PRIORITY_HIGH          0xFF
 #define HCI_BRCM_SET_ACL_PRIORITY           (0x0057 | HCI_GRP_VENDOR_SPECIFIC)
+#if defined (BOARD_HAVE_FM_BCM)
+#define HCI_BRCM_WRITE_PCM_PINS             (0x0061 | HCI_GRP_VENDOR_SPECIFIC) 
+#endif
 
 /* Define values for LMP Test Control parameters
 ** Test Scenario, Hopping Mode, Power Control Mode
@@ -2595,5 +2604,22 @@ typedef struct
 #define HCI_SUPP_COMMANDS_LE_RC_CONN_PARAM_UPD_NEG_RPY_OFF           33
 #define HCI_LE_RC_CONN_PARAM_UPD_NEG_RPY_SUPPORTED(x)      ((x)[HCI_SUPP_COMMANDS_LE_RC_CONN_PARAM_UPD_NEG_RPY_OFF] & HCI_SUPP_COMMANDS_RLE_RC_CONN_PARAM_UPD_NEG_RPY_MASK)
 
+#if (defined(SPRD_FEATURE_NONSIG) && SPRD_FEATURE_NONSIG == TRUE)
+#define NONSIG_TX_ENABLE               (0x00D1 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_TX_DISABLE              (0x00D2 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_RX_ENABLE               (0x00D3 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_RX_GETDATA              (0x00D4 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_RX_DISABLE              (0x00D5 | HCI_GRP_VENDOR_SPECIFIC)
+
+#define NONSIG_LE_TX_ENABLE            (0x00D6 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_LE_TX_DISABLE           (0x00D7 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_LE_RX_ENABLE            (0x00D8 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_LE_RX_GETDATA           (0x00D9 | HCI_GRP_VENDOR_SPECIFIC)
+#define NONSIG_LE_RX_DISABLE           (0x00DA | HCI_GRP_VENDOR_SPECIFIC)
+
+#define HCI_DUT_SET_TXPWR              (0x00E1 | HCI_GRP_VENDOR_SPECIFIC)
+#define HCI_DUT_SET_RXGIAN             (0x00E2 | HCI_GRP_VENDOR_SPECIFIC)
+#define HCI_DUT_GET_RXDATA             (0x00E3 | HCI_GRP_VENDOR_SPECIFIC)
+#endif
 #endif
 

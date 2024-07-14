@@ -253,7 +253,12 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
 
 #endif
 #endif
-            p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+	#ifdef RDA_BT  /*allow role switch*/
+		p->switch_role_state = BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF;
+	#else
+		p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+	#endif
+
 
             btm_pm_sm_alloc(xx);
 
@@ -751,7 +756,12 @@ void btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
             p->encrypt_state = BTM_ACL_ENCRYPT_STATE_TEMP_FUNC;
         }
 
+#ifdef RDA_BT
+	if (!btsnd_hcic_switch_role (p->remote_addr, 0x00))/*rdabt always as master role,for power save*/
+	/* if (!btsnd_hcic_switch_role (p->remote_addr, 0x01))  for hm1100 call noise,rdabt chip must be slave*/
+#else
         if (!btsnd_hcic_switch_role (p->remote_addr, (UINT8)!p->link_role))
+#endif
         {
             p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
             p->encrypt_state = BTM_ACL_ENCRYPT_STATE_IDLE;
@@ -816,6 +826,14 @@ tBTM_STATUS BTM_SetLinkPolicy (BD_ADDR remote_bda, UINT16 *settings)
     tACL_CONN   *p;
     UINT8       *localFeatures = BTM_ReadLocalFeatures();
     BTM_TRACE_DEBUG ("BTM_SetLinkPolicy");
+
+#ifdef RDA_BT
+    if (get_esco_conn_status() && (*settings == 0xf)) {
+        BTM_TRACE_DEBUG ("BTM_SetLinkPolicy setting:0xf when calling, directly return!!!");
+        return (BTM_NO_RESOURCES);
+    }
+#endif
+
 /*    BTM_TRACE_API ("BTM_SetLinkPolicy: requested settings: 0x%04x", *settings ); */
 
     /* First, check if hold mode is supported */
@@ -1861,10 +1879,6 @@ tBTM_STATUS BTM_RegBusyLevelNotif (tBTM_BL_CHANGE_CB *p_cb, UINT8 *p_level,
 tBTM_STATUS BTM_SetQoS (BD_ADDR bd, FLOW_SPEC *p_flow, tBTM_CMPL_CB *p_cb)
 {
     tACL_CONN   *p = &btm_cb.acl_db[0];
-
-    BTM_TRACE_API ("BTM_SetQoS: BdAddr: %02x%02x%02x%02x%02x%02x",
-                    bd[0], bd[1], bd[2],
-                    bd[3], bd[4], bd[5]);
 
     /* If someone already waiting on the version, do not allow another */
     if (btm_cb.devcb.p_qossu_cmpl_cb)

@@ -919,6 +919,7 @@ void BTA_DmSetBlePrefConnParams(BD_ADDR bd_addr,
 *******************************************************************************/
 void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
 {
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
     tBTA_DM_API_BLE_SCAN_PARAMS  *p_msg;
     if ((p_msg = (tBTA_DM_API_BLE_SCAN_PARAMS *)GKI_getbuf(sizeof(tBTA_DM_API_BLE_SCAN_PARAMS))) != NULL)
     {
@@ -928,8 +929,10 @@ void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
         p_msg->scan_window      = scan_window;
         bta_sys_sendmsg(p_msg);
     }
+#endif
 }
 
+#if BLE_INCLUDED == TRUE //SPRD FIX AOB
 /*******************************************************************************
 **
 ** Function         BTA_DmSetBleScanParams
@@ -964,6 +967,7 @@ void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
         bta_sys_sendmsg(p_msg);
     }
 }
+#endif
 
 /*******************************************************************************
 **

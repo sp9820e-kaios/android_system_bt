@@ -149,11 +149,11 @@ static const char BTE_LOGMSG_MODULE[] = "bte_logmsg_module";
 // btla-specific ++
 /* Core Stack default trace levels */
 #ifndef HCI_INITIAL_TRACE_LEVEL
-#define HCI_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING
+#define HCI_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING //BT_TRACE_LEVEL_VERBOSE
 #endif
 
 #ifndef BTM_INITIAL_TRACE_LEVEL
-#define BTM_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING
+#define BTM_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING //BT_TRACE_LEVEL_VERBOSE
 #endif
 
 #ifndef L2CAP_INITIAL_TRACE_LEVEL

@@ -6,6 +6,11 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
+ifeq ($(BOARD_HAVE_FM_BCM),true)
+LOCAL_CFLAGS += \
+  -DBOARD_HAVE_FM_BCM
+endif
+
 # HAL layer
 LOCAL_SRC_FILES:= \
 	../btif/src/bluetooth.c
@@ -54,7 +59,13 @@ LOCAL_SRC_FILES += \
     ../btif/src/btif_sock_util.c \
     ../btif/src/btif_storage.c \
     ../btif/src/btif_util.c \
-    ../btif/src/stack_manager.c
+    ../btif/src/stack_manager.c \
+    ../btif/src/btif_sprd.c \
+
+ifeq ($(BOARD_HAVE_FM_BCM),true)
+LOCAL_SRC_FILES += \
+    ../btif/src/btif_fm.c
+endif
 
 # callouts
 LOCAL_SRC_FILES+= \
@@ -66,6 +77,11 @@ LOCAL_SRC_FILES+= \
     ../btif/co/bta_pan_co.c \
     ../btif/co/bta_gattc_co.c \
     ../btif/co/bta_gatts_co.c \
+
+ifeq ($(BOARD_HAVE_FM_BCM),true)
+LOCAL_SRC_FILES += \
+    ../btif/co/bta_fm_co.c
+endif
 
 # sbc encoder
 LOCAL_SRC_FILES+= \
@@ -138,14 +154,20 @@ LOCAL_STATIC_LIBRARIES := \
     libbt-qcom_sbc_decoder
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \
-    libbt-brcm_bta \
-    libbt-brcm_gki \
-    libbt-brcm_stack \
+    libbt-sprd_bta \
+    libbt-sprd_gki \
+    libbt-sprd_stack \
     libbtdevice \
     libbt-hci \
     libbt-utils \
     libbtcore \
     libosi
+
+ifeq ($(BOARD_HAVE_FM_BCM),true)
+LOCAL_WHOLE_STATIC_LIBRARIES += \
+    libbt-fmcore \
+    libbt-fmrds
+endif
 
 LOCAL_MODULE := bluetooth.default
 LOCAL_MODULE_RELATIVE_PATH := hw
@@ -165,6 +187,7 @@ LOCAL_REQUIRED_MODULES := \
     auto_pair_devlist.conf \
     bt_did.conf \
     bt_stack.conf \
+    bt_stack_beta.conf \
     libbt-hci \
     libbt-vendor
 

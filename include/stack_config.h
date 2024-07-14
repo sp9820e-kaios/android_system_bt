@@ -30,7 +30,8 @@ typedef struct {
   bool (*get_btsnoop_turned_on)(void);
   bool (*get_btsnoop_should_save_last)(void);
   bool (*get_trace_config_enabled)(void);
-  config_t *(*get_all)(void);
+  config_t* (*get_all)(void);
+  config_t *(*get_debug_config)(void);
 } stack_config_t;
 
 const stack_config_t *stack_config_get_interface();

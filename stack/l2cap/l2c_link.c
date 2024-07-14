@@ -732,7 +732,11 @@ void l2c_link_adjust_allocation (void)
     /* First, count the links */
     for (yy = 0, p_lcb = &l2cb.lcb_pool[0]; yy < MAX_L2CAP_LINKS; yy++, p_lcb++)
     {
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE && BLE_INCLUDED == TRUE)
+        if (p_lcb->in_use && BT_TRANSPORT_BR_EDR == p_lcb->transport)
+#else
         if (p_lcb->in_use)
+#endif
         {
             if (p_lcb->acl_priority == L2CAP_PRIORITY_HIGH)
                 num_hipri_links++;
@@ -781,7 +785,11 @@ void l2c_link_adjust_allocation (void)
     /* Now, assign the quotas to each link */
     for (yy = 0, p_lcb = &l2cb.lcb_pool[0]; yy < MAX_L2CAP_LINKS; yy++, p_lcb++)
     {
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE && BLE_INCLUDED == TRUE)
+        if (p_lcb->in_use && BT_TRANSPORT_BR_EDR == p_lcb->transport)
+#else
         if (p_lcb->in_use)
+#endif
         {
             if (p_lcb->acl_priority == L2CAP_PRIORITY_HIGH)
             {

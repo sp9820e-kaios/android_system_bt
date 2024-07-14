@@ -23,7 +23,13 @@
 typedef struct {
   void (*init_stack)(void);
   void (*start_up_stack_async)(void);
+#if defined (BOARD_HAVE_FM_BCM)
+  void (*start_up_radio_async)(void);
+#endif
   void (*shut_down_stack_async)(void);
+#if defined (BOARD_HAVE_FM_BCM)
+  void (*shut_down_radio_async)(void);
+#endif
   void (*clean_up_stack_async)(void);
 
   bool (*get_stack_is_running)(void);

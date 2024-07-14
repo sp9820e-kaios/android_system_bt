@@ -203,6 +203,18 @@ typedef UINT8 AVDT_REPORT_TYPE;
 #define AVDT_NSC_RECONFIG           0x02    /* Reconfigure command not supported */
 #define AVDT_NSC_SECURITY           0x04    /* Security command not supported */
 
+#if (defined(SPRD_FEATURE_QOS) && SPRD_FEATURE_QOS == TRUE)
+#define AVDT_NO_TRAFFIC                 0
+#define AVDT_BEST_EFFORT                1
+#define AVDT_GUARANTEED                 2
+#define AVDT_DEFAULT_FLAG               0
+#define AVDT_DEFAULT_TOKEN_RATE         0
+#define AVDT_DEFAULT_BUCKET_SIZE        0
+#define AVDT_DEFAULT_PEAK_BANDWIDTH     0
+#define AVDT_DEFAULT_LATENCY            0xFFFFFFFF
+#define AVDT_DEFAULT_DELAY              0xFFFFFFFF
+#endif
+
 /*****************************************************************************
 **  Type Definitions
 *****************************************************************************/

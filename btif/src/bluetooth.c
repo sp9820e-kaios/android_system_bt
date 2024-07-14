@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if defined (BOARD_HAVE_FM_BCM)
+#include "bt_target.h"
+#endif
 
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hf.h>
@@ -41,6 +44,9 @@
 #include <hardware/bt_gatt.h>
 #include <hardware/bt_rc.h>
 #include <hardware/bt_sdp.h>
+#if defined (BOARD_HAVE_FM_BCM)
+#include <hardware/bt_fm.h>
+#endif
 
 #define LOG_NDDEBUG 0
 #define LOG_TAG "bt_bluedroid"
@@ -55,6 +61,7 @@
 #include "osi/include/log.h"
 #include "stack_manager.h"
 #include "btif_config.h"
+#include "btif_storage.h"
 
 /************************************************************************************
 **  Constants & Macros
@@ -67,6 +74,7 @@
 ************************************************************************************/
 
 bt_callbacks_t *bt_hal_cbacks = NULL;
+bool restricted_mode = FALSE;
 
 /** Operating System specific callouts for resource management */
 bt_os_callouts_t *bt_os_callouts = NULL;
@@ -105,6 +113,12 @@ extern btrc_interface_t *btif_rc_ctrl_get_interface();
 /*SDP search client*/
 extern btsdp_interface_t *btif_sdp_get_interface();
 
+#if defined (BOARD_HAVE_FM_BCM)
+extern const btfm_interface_t *btif_fm_get_interface();
+#endif
+
+#include "btif_sprd.h"
+
 /************************************************************************************
 **  Functions
 ************************************************************************************/
@@ -135,8 +149,10 @@ static int init(bt_callbacks_t *callbacks) {
   return BT_STATUS_SUCCESS;
 }
 
-static int enable(void) {
-  LOG_INFO("%s", __func__);
+static int enable(bool start_restricted) {
+  LOG_INFO(LOG_TAG, "%s: start restricted = %d", __func__, start_restricted);
+
+  restricted_mode = start_restricted;
 
   if (!interface_ready())
     return BT_STATUS_NOT_READY;
@@ -153,8 +169,34 @@ static int disable(void) {
   return BT_STATUS_SUCCESS;
 }
 
+#if defined (BOARD_HAVE_FM_BCM)
+static int enable_radio( void )
+{
+    if (interface_ready() == FALSE)
+        return BT_STATUS_NOT_READY;
+
+    stack_manager_get_interface()->start_up_radio_async();
+    return BT_STATUS_SUCCESS;
+}
+
+static int disable_radio(void)
+{
+    LOG_INFO("%s", __FUNCTION__);
+
+    if (interface_ready() == FALSE)
+        return BT_STATUS_NOT_READY;
+	
+	stack_manager_get_interface()->shut_down_radio_async();
+	return BT_STATUS_SUCCESS;
+}
+#endif
+
 static void cleanup(void) {
   stack_manager_get_interface()->clean_up_stack_async();
+}
+
+bool is_restricted_mode() {
+  return restricted_mode;
 }
 
 static int get_adapter_properties(void)
@@ -267,6 +309,9 @@ static int cancel_bond(const bt_bdaddr_t *bd_addr)
 
 static int remove_bond(const bt_bdaddr_t *bd_addr)
 {
+    if (is_restricted_mode() && !btif_storage_is_restricted_device(bd_addr))
+        return BT_STATUS_SUCCESS;
+
     /* sanity check */
     if (interface_ready() == FALSE)
         return BT_STATUS_NOT_READY;
@@ -363,8 +408,30 @@ static const void* get_profile_interface (const char *profile_id)
     if (is_profile(profile_id, BT_PROFILE_AV_RC_CTRL_ID))
         return btif_rc_ctrl_get_interface();
 
+#if ((defined SPRD_FEATURE_INTERFACE) && (SPRD_FEATURE_INTERFACE == TRUE))
+    if (is_profile(profile_id, BT_PROFILE_SPRD_ID))
+        return btif_sprd_get_interface();
+#endif
     return NULL;
 }
+
+#if defined (BOARD_HAVE_FM_BCM)
+static const void* get_fm_interface ()
+{
+    ALOGI("get_fm_interface " );
+
+    /* sanity check */
+    if (interface_ready() == FALSE)
+        return NULL;
+
+//#if (defined(BPLUS_FM_INCLUDED) && (BPLUS_FM_INCLUDED == TRUE))
+        return btif_fm_get_interface();
+//#else
+//        ALOGE("bplus FM is not included ");
+//        return NULL;
+//#endif
+}
+#endif
 
 int dut_mode_configure(uint8_t enable)
 {
@@ -427,6 +494,13 @@ static const bt_interface_t bluetoothInterface = {
     init,
     enable,
     disable,
+#if defined (BOARD_HAVE_FM_BCM)
+    enable_radio,
+    disable_radio,
+#else
+    NULL,
+    NULL,
+#endif
     cleanup,
     get_adapter_properties,
     get_adapter_property,
@@ -456,7 +530,21 @@ static const bt_interface_t bluetoothInterface = {
     set_os_callouts,
     read_energy_info,
     dump,
-    config_clear
+    config_clear,
+#if (defined(SPRD_FEATURE_NONSIG) && SPRD_FEATURE_NONSIG == TRUE)
+    btif_set_nonsig_tx_testmode,
+    btif_set_nonsig_rx_testmode,
+    btif_get_nonsig_rx_data,
+#else
+    NULL,
+    NULL,
+    NULL,
+#endif
+#if defined (BOARD_HAVE_FM_BCM)
+    get_fm_interface,
+#else
+    NULL,
+#endif
 };
 
 const bt_interface_t* bluetooth__get_bluetooth_interface ()

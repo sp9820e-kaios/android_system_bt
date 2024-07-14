@@ -44,7 +44,9 @@
 #include "osi.h"
 #include "osi/include/log.h"
 #include "hci_layer.h"
-
+#if defined(RDA_BT)
+#include "low_power_manager.h"
+#endif
 // TODO(zachoverflow): remove this horrible hack
 #include "btu.h"
 extern fixed_queue_t *btu_hci_msg_queue;
@@ -360,7 +362,9 @@ void btu_hcif_send_cmd (UNUSED_ATTR UINT8 controller_id, BT_HDR *p_buf)
 {
     if (!p_buf)
       return;
-
+#if defined(RDA_BT)
+    const low_power_manager_t *low_power_manager = NULL;
+#endif
     uint16_t opcode;
     uint8_t *stream = p_buf->data + p_buf->offset;
     void * vsc_callback = NULL;
@@ -377,12 +381,20 @@ void btu_hcif_send_cmd (UNUSED_ATTR UINT8 controller_id, BT_HDR *p_buf)
        ) {
         vsc_callback = *((void **)(p_buf + 1));
     }
-
+#if defined(RDA_BT)
+    low_power_manager = low_power_manager_get_interface();
+    if (low_power_manager)
+        low_power_manager->wake_assert();
+#endif
     hci_layer_get_interface()->transmit_command(
       p_buf,
       btu_hcif_command_complete_evt,
       btu_hcif_command_status_evt,
       vsc_callback);
+#if defined(RDA_BT)
+    if (low_power_manager)
+        low_power_manager->transmit_done();
+#endif
 
 #if (defined(HCILP_INCLUDED) && HCILP_INCLUDED == TRUE)
     btu_check_bt_sleep ();
@@ -1282,6 +1294,10 @@ static void btu_hcif_mode_change_evt (UINT8 *p)
     btm_sco_chk_pend_unpark (status, handle);
 #endif
     btm_pm_proc_mode_change (status, handle, current_mode, interval);
+
+#ifdef RDA_BT //fix rdabt cannot enter deepsleep when connect to bt headset,although it already enter sniff mode according to the log
+	btsnd_hcic_wake_up_chip();
+#endif
 
 #if (HID_DEV_INCLUDED == TRUE) && (HID_DEV_PM_INCLUDED == TRUE)
     hidd_pm_proc_mode_change( status, current_mode, interval ) ;

@@ -1097,7 +1097,11 @@ void btm_sco_removed (UINT16 hci_handle, UINT8 reason)
     tSCO_CONN   *p = &btm_cb.sco_cb.sco_db[0];
     UINT16      xx;
 #endif
-
+#ifdef RDA_BT
+    btsnd_hcic_write_policy_set(hci_handle, 0x04);
+    set_esco_conn_status(FALSE);
+    BTM_TRACE_DEBUG ("btm_sco_removed: 0x4 conn: %d", get_esco_conn_status());
+#endif
     btm_cb.sco_cb.sco_disc_reason = reason;
 
 #if (BTM_MAX_SCO_LINKS>0)

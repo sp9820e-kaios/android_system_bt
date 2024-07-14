@@ -1077,6 +1077,35 @@ static UINT8 bta_av_get_shdl(tBTA_AV_SCB *p_scb)
     return shdl;
 }
 
+#if (defined(SPRD_FEATURE_QOS) && SPRD_FEATURE_QOS == TRUE)
+/*******************************************************************************
+**
+** Function         bta_qos_enable
+**
+** Returns          NULL
+**
+*******************************************************************************/
+static void bta_qos_enable(BD_ADDR addr, BOOLEAN enable)
+{
+    FLOW_SPEC qos;
+    qos.qos_flags = AVDT_DEFAULT_FLAG;
+    qos.token_rate = AVDT_DEFAULT_TOKEN_RATE;
+    qos.token_bucket_size = AVDT_DEFAULT_BUCKET_SIZE;
+    qos.peak_bandwidth = AVDT_DEFAULT_PEAK_BANDWIDTH;
+    qos.latency = AVDT_DEFAULT_LATENCY;
+    qos.delay_variation = AVDT_DEFAULT_DELAY;
+
+    qos.service_type = enable ? AVDT_GUARANTEED : AVDT_BEST_EFFORT;
+
+    APPL_TRACE_DEBUG("%s: BdAddr: %02x%02x%02x%02x%02x%02x, type: %x",
+                      __func__, addr[0], addr[1], addr[2],
+                      addr[3], addr[4], addr[5],
+                      qos.service_type);
+
+    BTM_SetQoS(addr, &qos, NULL);
+}
+#endif
+
 /*******************************************************************************
 **
 ** Function         bta_av_stream_chg
@@ -1104,6 +1133,9 @@ void bta_av_stream_chg(tBTA_AV_SCB *p_scb, BOOLEAN started)
 
     if (started)
     {
+#if (defined(SPRD_FEATURE_QOS) && SPRD_FEATURE_QOS == TRUE)
+        bta_qos_enable(p_scb->peer_addr, TRUE);
+#endif
         /* Let L2CAP know this channel is processed with high priority */
         L2CA_SetAclPriority(p_scb->peer_addr, L2CAP_PRIORITY_HIGH);
         (*p_streams) |= started_msk;
@@ -1145,6 +1177,9 @@ void bta_av_stream_chg(tBTA_AV_SCB *p_scb, BOOLEAN started)
                            bta_av_cb.audio_streams, bta_av_cb.video_streams);
         if (no_streams)
         {
+#if (defined(SPRD_FEATURE_QOS) && SPRD_FEATURE_QOS == TRUE)
+            bta_qos_enable(p_scb->peer_addr, FALSE);
+#endif
             /* Let L2CAP know this channel is processed with low priority */
             L2CA_SetAclPriority(p_scb->peer_addr, L2CAP_PRIORITY_NORMAL);
         }

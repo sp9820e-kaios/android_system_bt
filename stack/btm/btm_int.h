@@ -853,11 +853,6 @@ typedef struct
     BOOLEAN                  security_mode_changed;  /* mode changed during bonding */
     BOOLEAN                  pin_type_changed;       /* pin type changed during bonding */
     BOOLEAN                  sec_req_pending;       /*   TRUE if a request is pending */
-// btla-specific ++
-#ifdef PORCHE_PAIRING_CONFLICT
-    UINT8                    pin_code_len_saved;     /* for legacy devices */
-#endif
-// btla-specific --
 
     UINT8                    pin_code_len;  /* for legacy devices */
     PIN_CODE                 pin_code;      /* for legacy devices */
@@ -1108,6 +1103,12 @@ extern void  btm_acl_reset_paging (void);
 extern void  btm_acl_paging (BT_HDR *p, BD_ADDR dest);
 extern UINT8 btm_sec_clr_service_by_psm (UINT16 psm);
 extern void  btm_sec_clr_temp_auth_service (BD_ADDR bda);
+
+#ifdef RDA_BT
+extern BOOLEAN esco_conn_status;
+extern void set_esco_conn_status(BOOLEAN conn_status);
+extern BOOLEAN get_esco_conn_status();
+#endif
 
 #ifdef __cplusplus
 }

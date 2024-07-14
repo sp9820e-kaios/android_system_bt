@@ -35,7 +35,9 @@
 #include "btm_int.h"
 #include "btu.h"
 #include "hcimsgs.h"
-
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+#include "stack_manager.h"
+#endif
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
@@ -790,6 +792,12 @@ static void l2c_csm_config (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
         }
 
         L2CAP_TRACE_API ("L2CAP - Calling Config_Rsp_Cb(), CID: 0x%04x", p_ccb->local_cid);
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+        if (p_ccb->p_rcb->real_psm == SDP_PSM && (!(stack_manager_get_interface()->get_stack_is_running())) &&
+            p_cfg->result == L2CAP_CFG_OK) {
+            p_cfg->result = L2CAP_CFG_FAILED_NO_REASON;
+        }
+#endif
         (*p_ccb->p_rcb->api.pL2CA_ConfigCfm_Cb)(p_ccb->local_cid, p_cfg);
         break;
 
@@ -1024,6 +1032,10 @@ static void l2c_csm_open (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
         break;
 
     case L2CEVT_L2CAP_DATA:                         /* Peer data packet rcvd    */
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+        if (p_ccb->p_rcb->real_psm == SDP_PSM && (!(stack_manager_get_interface()->get_stack_is_running())))
+            return;
+#endif
         if((p_ccb->p_rcb) && (p_ccb->p_rcb->api.pL2CA_DataInd_Cb))
             (*p_ccb->p_rcb->api.pL2CA_DataInd_Cb)(p_ccb->local_cid, (BT_HDR *)p_data);
         break;
@@ -1043,7 +1055,16 @@ static void l2c_csm_open (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
         break;
 
     case L2CEVT_L2CA_DATA_WRITE:                    /* Upper layer data to send */
-        l2c_enqueue_peer_data (p_ccb, (BT_HDR *)p_data);
+        #ifdef RDA_BT /*to fix the bug can not accept or reject call by bt headset*/
+	/* Make sure we are not in sniff mode */
+        {
+            tBTM_PM_PWR_MD settings;
+            memset((void*)&settings, 0, sizeof(settings));
+            settings.mode = BTM_PM_MD_ACTIVE;
+            BTM_SetPowerMode (BTM_PM_SET_ONLY_ID, p_ccb->p_lcb->remote_bd_addr, &settings);
+        }
+	#endif
+	l2c_enqueue_peer_data (p_ccb, (BT_HDR *)p_data);
         l2c_link_check_send_pkts (p_ccb->p_lcb, NULL, NULL);
         break;
 

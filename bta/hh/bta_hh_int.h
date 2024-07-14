@@ -405,7 +405,9 @@ extern void bta_hh_security_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_buf);
 extern void bta_hh_le_update_scpp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_buf);
 extern void bta_hh_le_notify_enc_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data);
 extern void bta_hh_ci_load_rpt (tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_buf);
-
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+extern void bta_hh_le_clean_up_notifications(tBTA_HH_DEV_CB *p_dev_cb, UINT8 srvc_inst);
+#endif
 #if BTA_HH_DEBUG
 extern void bta_hh_trace_dev_db(void);
 #endif

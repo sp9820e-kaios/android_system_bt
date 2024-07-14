@@ -433,6 +433,15 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
         case L2CAP_CMD_CONN_REQ:
             STREAM_TO_UINT16 (con_info.psm, p);
             STREAM_TO_UINT16 (rcid, p);
+	    #ifdef  RDA_BT /* to fix the bug cannot connect a2dp profile sometimes for xiaomi bt headset*/
+	    /******
+	     * We will ignore the AVDTP	connection request command from slave,
+	     * a timeout error will occur and higher protocol will take care of this .
+	     ******/
+	    if(0x19==con_info.psm){
+		break;
+	    }
+	    #endif
             if ((p_rcb = l2cu_find_rcb_by_psm (con_info.psm)) == NULL)
             {
                 L2CAP_TRACE_WARNING ("L2CAP - rcvd conn req for unknown PSM: %d", con_info.psm);

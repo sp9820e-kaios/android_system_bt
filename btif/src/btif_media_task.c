@@ -750,6 +750,7 @@ bool btif_a2dp_start_media_task(void)
 void btif_a2dp_stop_media_task(void)
 {
     APPL_TRACE_EVENT("## A2DP STOP MEDIA THREAD ##");
+    APPL_TRACE_DEBUG("%s is_tx_timer: %d", __func__, btif_media_cb.is_tx_timer);
 
     // Stop timer
     alarm_free(btif_media_cb.media_alarm);

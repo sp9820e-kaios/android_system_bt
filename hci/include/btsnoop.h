@@ -22,6 +22,8 @@
 
 #include "bt_types.h"
 
+#include "bt_target.h"
+
 static const char BTSNOOP_MODULE[] = "btsnoop_module";
 
 typedef struct btsnoop_t {
@@ -37,3 +39,8 @@ typedef struct btsnoop_t {
 } btsnoop_t;
 
 const btsnoop_t *btsnoop_get_interface(void);
+
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+static const char BTSNOOP_SPRD_MODULE[] = "btsnoop_sprd_module";
+const btsnoop_t *btsnoop_sprd_get_interface(void);
+#endif

@@ -24,23 +24,62 @@
 #include "stack_config.h"
 #include "osi/include/log.h"
 
+#include "bt_target.h"
+#include "string.h"
+
 const char *BTSNOOP_LOG_PATH_KEY = "BtSnoopFileName";
 const char *BTSNOOP_TURNED_ON_KEY = "BtSnoopLogOutput";
 const char *BTSNOOP_SHOULD_SAVE_LAST_KEY = "BtSnoopSaveLog";
 const char *TRACE_CONFIG_ENABLED_KEY = "TraceConf";
 
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+#include <cutils/properties.h>
+const char *bt_stack_file = "/system/etc/bluetooth/bt_stack.conf";
+const char *bt_stack_beta_file = "/system/etc/bluetooth/bt_stack_beta.conf";
+#endif
+
 static config_t *config;
+
+static config_t *config_debug;
 
 // Module lifecycle functions
 
 static future_t *init() {
-  const char *path = "/etc/bluetooth/bt_stack.conf";
+#if (defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+#ifdef BLUEDROID_DEBUG
+  const char *path = bt_stack_beta_file;
+#else
+    const char *path;
+  {
+    char buf[128] = {0};
+    property_get("bluetooth.stack.log.level", buf, "0");
+    if (buf[0] == '1') {
+      path = bt_stack_beta_file;
+    } else {
+      path = bt_stack_file;
+    }
+  }
+#endif
+#else
+  const char *path = "/system/etc/bluetooth/bt_stack.conf";
+#endif
   assert(path != NULL);
 
   LOG_INFO("%s attempt to load stack conf from %s", __func__, path);
 
   config = config_new(path);
   if (!config) {
+    LOG_INFO("%s file >%s< not found", __func__, path);
+    return future_new_immediate(FUTURE_FAIL);
+  }
+
+  if(strcmp(path, bt_stack_beta_file) == 0) {
+    config_debug = config;
+  }
+  else {
+    config_debug = config_new("/system/etc/bluetooth/bt_stack_beta.conf");
+  }
+  if (!config_debug) {
     LOG_INFO("%s file >%s< not found", __func__, path);
     return future_new_immediate(FUTURE_FAIL);
   }
@@ -86,13 +125,19 @@ static config_t *get_all(void) {
   return config;
 }
 
+static config_t* get_debug_config(void) {
+  return config_debug;
+}
+
 const stack_config_t interface = {
   get_btsnoop_log_path,
   get_btsnoop_turned_on,
   get_btsnoop_should_save_last,
   get_trace_config_enabled,
-  get_all
+  get_all,
+  get_debug_config
 };
+
 
 const stack_config_t *stack_config_get_interface() {
   return &interface;

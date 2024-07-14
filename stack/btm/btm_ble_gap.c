@@ -2604,6 +2604,9 @@ BOOLEAN btm_ble_update_inq_result(tINQ_DB_ENT *p_i, UINT8 addr_type, UINT8 evt_t
     else
     {
         BTM_TRACE_DEBUG("BR/EDR NOT SUPPORT bit set, LE only device");
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+        p_cur->device_type = BT_DEVICE_TYPE_BLE;
+#endif
     }
 
     return to_report;
@@ -3386,7 +3389,11 @@ void btm_ble_init (void)
     p_cb->cur_states       = 0;
 
     p_cb->inq_var.adv_mode = BTM_BLE_ADV_DISABLE;
+#if (defined(SPRD_FEATURE_AOBFIX) && SPRD_FEATURE_AOBFIX == TRUE)
+    p_cb->inq_var.scan_type = BTM_BLE_SCAN_MODE_ACTI;
+#else
     p_cb->inq_var.scan_type = BTM_BLE_SCAN_MODE_NONE;
+#endif
     p_cb->inq_var.adv_chnl_map = BTM_BLE_DEFAULT_ADV_CHNL_MAP;
     p_cb->inq_var.afp = BTM_BLE_DEFAULT_AFP;
     p_cb->inq_var.sfp = BTM_BLE_DEFAULT_SFP;

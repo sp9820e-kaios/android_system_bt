@@ -36,6 +36,20 @@
 
 #include "btm_int.h"    /* Included for UIPC_* macro definitions */
 
+#ifdef RDA_BT
+BOOLEAN esco_conn_status = FALSE;
+
+void set_esco_conn_status(BOOLEAN conn_status)
+{
+    esco_conn_status = conn_status;
+}
+
+BOOLEAN get_esco_conn_status()
+{
+    return esco_conn_status;
+}
+#endif
+
 BOOLEAN btsnd_hcic_inquiry(const LAP inq_lap, UINT8 duration, UINT8 response_cnt)
 {
     BT_HDR *p;
@@ -206,6 +220,11 @@ BOOLEAN btsnd_hcic_add_SCO_conn (UINT16 handle, UINT16 packet_types)
     UINT16_TO_STREAM (pp, packet_types);
 
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID, p);
+#ifdef RDA_BT
+    set_esco_conn_status(TRUE);
+    btsnd_hcic_write_policy_set(handle, 0);
+    HCI_TRACE_DEBUG("btsnd_hcic_add_SCO_conn: 0x0 conn: %d", get_esco_conn_status());
+#endif
     return (TRUE);
 }
 #endif /* BTM_SCO_INCLUDED */
@@ -248,7 +267,16 @@ BOOLEAN btsnd_hcic_accept_conn (BD_ADDR dest, UINT8 role)
     UINT16_TO_STREAM (pp, HCI_ACCEPT_CONNECTION_REQUEST);
     UINT8_TO_STREAM  (pp, HCIC_PARAM_SIZE_ACCEPT_CONN);
     BDADDR_TO_STREAM (pp, dest);
-    UINT8_TO_STREAM  (pp, role);
+
+#ifdef RDA_BT
+/*if(dest[0]==0x1c&&dest[1]==0x48&&dest[0]==0xf9){ /*jabra -OTE27 -1*/
+	UINT8_TO_STREAM  (pp, 0x0);  /*rdabt always be master role,when headset(jabra -OTE27 -1) reconnect . */
+/*}else{
+	UINT8_TO_STREAM  (pp, role);
+}*/
+#else
+	UINT8_TO_STREAM  (pp, role);
+#endif
 
     counter_add("hci.conn.accept", 1);
 
@@ -634,6 +662,12 @@ BOOLEAN btsnd_hcic_setup_esco_conn (UINT16 handle, UINT32 tx_bw,
     UINT16_TO_STREAM (pp, packet_types);
 
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
+#ifdef RDA_BT
+    set_esco_conn_status(TRUE);
+    btsnd_hcic_write_policy_set(handle, 0);
+    HCI_TRACE_DEBUG("btsnd_hcic_setup_esco_conn: 0x0 conn: %d", get_esco_conn_status());
+#endif
+
     return (TRUE);
 }
 
@@ -838,8 +872,9 @@ BOOLEAN btsnd_hcic_qos_setup (UINT16 handle, UINT8 flags, UINT8 service_type,
     UINT32_TO_STREAM (pp, peak);
     UINT32_TO_STREAM (pp, latency);
     UINT32_TO_STREAM (pp, delay_var);
-
+#ifndef RDA_BT
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
+#endif
     return (TRUE);
 }
 
@@ -1056,6 +1091,28 @@ BOOLEAN btsnd_hcic_read_name (void)
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
     return (TRUE);
 }
+
+#if defined(RDA_BT)
+void btsnd_hcic_wake_up_chip (void)
+{
+    BT_HDR *p;
+    UINT8 *pp;
+
+    if ((p = HCI_GET_CMD_BUF(HCIC_PARAM_SIZE_READ_CMD)) == NULL)
+        return (FALSE);
+
+    pp = (UINT8 *)(p + 1);
+
+    p->len    = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_READ_CMD;
+    p->offset = 0;
+
+    UINT16_TO_STREAM (pp, 0xfcc0);
+    UINT8_TO_STREAM  (pp,  HCIC_PARAM_SIZE_READ_CMD);
+
+    btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
+    return (TRUE);
+}
+#endif
 
 BOOLEAN btsnd_hcic_write_page_tout (UINT16 timeout)
 {

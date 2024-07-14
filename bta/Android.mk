@@ -2,9 +2,9 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
-ifeq ($(BOARD_HAVE_BLUETOOTH_BCM),true)
+ifeq ($(BOARD_HAVE_FM_BCM),true)
 LOCAL_CFLAGS += \
-	-DBOARD_HAVE_BLUETOOTH_BCM
+	-DBOARD_HAVE_FM_BCM
 endif
 LOCAL_CFLAGS += -DBUILDCFG $(bdroid_CFLAGS) -std=c99
 LOCAL_CLANG_CFLAGS += -Wno-error=gnu-variable-sized-type-not-at-end
@@ -82,7 +82,7 @@ LOCAL_SRC_FILES:= \
     ./jv/bta_jv_main.c \
     ./jv/bta_jv_api.c
 
-LOCAL_MODULE := libbt-brcm_bta
+LOCAL_MODULE := libbt-sprd_bta
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 LOCAL_MODULE_TAGS := optional
 LOCAL_SHARED_LIBRARIES := libcutils libc
@@ -109,3 +109,24 @@ LOCAL_C_INCLUDES+= . \
 
 
 include $(BUILD_STATIC_LIBRARY)
+
+ifeq ($(BOARD_HAVE_FM_BCM),true)
+#LOCAL_PATH:= $(call my-dir)
+include $(CLEAR_VARS)
+
+LOCAL_CFLAGS += \
+	-DBOARD_HAVE_FM_BCM
+
+LOCAL_CFLAGS += -DBUILDCFG $(bdroid_CFLAGS) -std=c99
+LOCAL_CLANG_CFLAGS += -Wno-error=gnu-variable-sized-type-not-at-end
+
+#
+# FM core lib
+#
+LOCAL_MODULE := libbt-fmcore
+LOCAL_MODULE_CLASS :=  STATIC_LIBRARIES
+LOCAL_SRC_FILES := ./fm/libbt-fmcore.a
+LOCAL_MODULE_SUFFIX := .a
+LOCAL_MULTILIB := 32
+include $(BUILD_PREBUILT)
+endif

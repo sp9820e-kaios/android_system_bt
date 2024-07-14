@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "bt_target.h"
 #include "osi/include/eager_reader.h"
 #include "hci_hal.h"
 #include "osi/include/osi.h"
@@ -122,6 +123,16 @@ static void packet_finished(serial_data_type_t type) {
   stream_has_interpretation = false;
 }
 
+#if (defined(BLUEDROID_DEBUG) && defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+static void log_userial_tx_timing(int ret){
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    struct tm *time = gmtime(&tv.tv_sec);
+    LOG_DEBUG("%02d:%02d:%02d:%06ld ret=%d",
+          time->tm_hour, time->tm_min, time->tm_sec, tv.tv_usec, ret);
+}
+#endif
+
 static uint16_t transmit_data(serial_data_type_t type, uint8_t *data, uint16_t length) {
   assert(data != NULL);
   assert(length > 0);
@@ -140,6 +151,9 @@ static uint16_t transmit_data(serial_data_type_t type, uint8_t *data, uint16_t l
   uint16_t transmitted_length = 0;
   while (length > 0) {
     ssize_t ret = write(uart_fd, data + transmitted_length, length);
+#if (defined(BLUEDROID_DEBUG) && defined(SPRD_FEATURE_SLOG) && SPRD_FEATURE_SLOG == TRUE)
+    log_userial_tx_timing(ret);
+ #endif
     switch (ret) {
       case -1:
         LOG_ERROR("In %s, error writing to the uart serial port: %s", __func__, strerror(errno));
